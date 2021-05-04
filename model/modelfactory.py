@@ -120,6 +120,63 @@ class ModelFactory():
                     ('linear', [1000, 1024]),
                 ]
 
+        elif dataset == "mini_imagenet":
+            if model_type == "Neuromodulation":
+
+                nm_channels = 112
+                channels = 256
+                size_of_representation = 2304
+                size_of_interpreter = 1008
+
+                return [
+
+                    # =============== Separate network neuromodulation =======================
+
+                    ('conv1_nm', [nm_channels, 3, 3, 3, 1, 0]),
+                    ('bn1_nm', [nm_channels]),
+                    ('conv2_nm', [nm_channels, nm_channels, 3, 3, 1, 0]),
+                    ('bn2_nm', [nm_channels]),
+                    ('conv3_nm', [nm_channels, nm_channels, 3, 3, 1, 0]),
+                    ('bn3_nm', [nm_channels]),
+
+                    ('nm_to_fc', [size_of_representation, size_of_interpreter]),
+
+                    # =============== Prediction network ===============================
+
+                    ('conv1', [channels, 3, 3, 3, 1, 0]),
+                    ('bn1', [channels]),
+                    ('conv2', [channels, channels, 3, 3, 1, 0]),
+                    ('bn2', [channels]),
+                    ('conv3', [channels, channels, 3, 3, 1, 0]),
+                    ('bn3', [channels]),
+                    ('fc', [1000, size_of_representation]),
+                ]
+
+
+            elif model_type == 'OML':
+                channels = 256
+                return [
+                    ('conv2d', [channels, 3, 3, 3, 1, 0]),
+                    ('relu', [True]),
+                    # ('max_pool2d', [2, 2, 0]),
+                    ('conv2d', [channels, channels, 3, 3, 1, 0]),
+                    ('relu', [True]),
+                    # ('max_pool2d', [2, 2, 0]),
+                    ('conv2d', [channels, channels, 3, 3, 1, 0]),
+                    ('relu', [True]),
+                    # ('max_pool2d', [2, 2, 0]),
+                    ('conv2d', [channels, channels, 3, 3, 2, 0]),
+                    ('relu', [True]),
+                    ('conv2d', [channels, channels, 3, 3, 1, 0]),
+                    ('relu', [True]),
+                    ('conv2d', [channels, channels, 3, 3, 2, 0]),
+                    ('relu', [True]),
+                    ('flatten', []),
+                    ('rep', []),
+                    ('linear', [1024, 2304]),
+                    ('relu', [True]),
+                    ('linear', [1000, 1024]),
+                ]
         else:
             print("Unsupported model; either implement the model in model/ModelFactory or choose a different model")
             assert (False)
