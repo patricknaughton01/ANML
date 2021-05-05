@@ -134,9 +134,11 @@ class MiniImageNet(data.Dataset):
             image = Image.open(image_path, mode='r').convert('RGB')  # L
             image = image.resize((28, 28), resample=Image.LANCZOS)
             image = np.array(image, dtype=np.float32)
-            normalize = transforms.Normalize(mean=[0.92206 * 256, 0.92206 * 256, 0.92206 * 256],
-                                             std=[0.08426 * 256 * 256, 0.08426 * 256 * 256,
-                                                  0.08426 * 256 * 256])  # adjust means and std of input data
+            #  mean and std computed over all 60000 images
+            #  mean: [120.61778, 114.46307, 102.97153]
+            #  std: [67.23823, 65.32288, 68.979576]
+            normalize = transforms.Normalize(mean=[120.61778, 114.46307, 102.97153],
+                                             std=[67.23823, 65.32288, 68.979576])  # adjust means and std of input data
             self.transform = transforms.Compose([transforms.ToTensor(), normalize])
             if self.transform is not None:
                 image = self.transform(image)

@@ -1,0 +1,5 @@
+*/__pycache__/
+HAL/*
+**/.ipynb_checkpoints
+**/.idea
+**/.DS_Store

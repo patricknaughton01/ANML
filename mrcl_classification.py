@@ -24,7 +24,13 @@ def main(args):
     logger = logging.getLogger('experiment')
 
     # Using first 963 classes of the omniglot as the meta-training set
-    args.classes = list(range(963))
+    # Using the 60 classes in mini-imagenet train split as the meta-training set
+    if args.dataset == "omniglot":
+        args.classes = list(range(963))
+    elif args.dataset == "mini_imagenet":
+        args.classes = list(range(63))
+    else:
+        raise Exception(f"Unknown number of classes for {args.dataset}")
 
     dataset = df.DatasetFactory.get_dataset(args.dataset, background=True, train=True, all=True)
     dataset_test = df.DatasetFactory.get_dataset(args.dataset, background=True, train=False, all=True)
