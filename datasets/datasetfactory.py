@@ -1,7 +1,7 @@
 import torchvision.transforms as transforms
 
 import datasets.omniglot as om
-
+import datasets.mini_imagenet as mi
 
 class DatasetFactory:
     def __init__(self):
@@ -19,6 +19,16 @@ class DatasetFactory:
                                    transform=train_transform, all=all)
             else:
                 return om.Omniglot(path, download=True, background=train, transform=train_transform)
+
+        elif name == "mini_imagenet":
+            train_transform = transforms.Compose(
+                [transforms.Resize((84, 84)),
+                 transforms.ToTensor()])
+            if path is None:
+                return mi.MiniImageNet("../data/mini_imagenet", background=background, download=True, train=train,
+                                       transform=train_transform, all=all)
+            else:
+                return mi.MiniImageNet(path, download=True, background=train, transform=train_transform)
 
         else:
             print("Unsupported Dataset")
