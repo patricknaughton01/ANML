@@ -72,7 +72,7 @@ class MetaLearingClassification(nn.Module):
                 targets[t] = new_target
 
             return(targets)
-        
+
         else:
             new_target = (targets+2)%1000
             return(new_target)
@@ -161,10 +161,10 @@ class MetaLearingClassification(nn.Module):
         if fast_weights is None:
             fast_weights = self.net.parameters()
 
-        grad = torch.autograd.grad(loss, fast_weights, allow_unused=False)
+        grad = torch.autograd.grad(loss, fast_weights, allow_unused=True)
 
         fast_weights = list(
-            map(lambda p: p[1] - self.update_lr * p[0] if p[1].learn else p[1], zip(grad, fast_weights)))
+            map(lambda p: p[1] - self.update_lr * p[0] if (p[0] is not None) and p[1].learn else p[1], zip(grad, fast_weights)))
 
         for params_old, params_new in zip(self.net.parameters(), fast_weights):
             params_new.learn = params_old.learn
@@ -198,7 +198,7 @@ class MetaLearingClassification(nn.Module):
             #if coin_flip > 0:
             x_traj_bs = self.add_patch_to_images(copy.deepcopy(x_traj), task_num=1)
             y_traj_bs = self.shuffle_labels(copy.deepcopy(y_traj), batch=True)
-            
+
             # randomly add a black patch to the validation images
             for i in range(len(x_rand[0])):
                 coin_flip = np.random.randn()
@@ -210,28 +210,28 @@ class MetaLearingClassification(nn.Module):
                     #plt.show()
 
         fast_weights = self.inner_update(x_traj[0], None, y_traj[0], False)
-        
+
         for k in range(1, self.update_step):
             # Doing inner updates using fast weights
             fast_weights = self.inner_update(x_traj[k], fast_weights, y_traj[k], False)
-        
+
         meta_loss, logits = self.meta_loss(x_rand[0], fast_weights, y_rand[0], False)
-     
+
         with torch.no_grad():
             pred_q = F.softmax(logits, dim=1).argmax(dim=1)
             classification_accuracy = torch.eq(pred_q, y_rand[0]).sum().item()  # convert to numpy
 
         # Taking the meta gradient step
-    
+
         self.net.zero_grad()
 
         NM_reset = False
-    
+
         if NM_reset:
 
             layers_to_reset = list(range(14, 28))
             grads = torch.autograd.grad(meta_loss, self.net.parameters())
-        
+
             for idx in range(len(self.net.parameters())):
                 if idx in layers_to_reset:
                     self.net.parameters()[idx].grad = None
@@ -241,9 +241,9 @@ class MetaLearingClassification(nn.Module):
             meta_loss.backward()
 
         self.optimizer.step()
-        
+
         classification_accuracy /= len(x_rand[0])
-        
+
         self.meta_iteration += 1
 
         return classification_accuracy, meta_loss

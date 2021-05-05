@@ -17,10 +17,10 @@ from experiment.experiment import experiment
 
 logger = logging.getLogger('experiment')
 
-def pickle_dict(dictionary, filename): 
-    p = pickle.Pickler(open("{0}.p".format(filename),"wb")) 
-    p.fast = True 
-    p.dump(dictionary) 
+def pickle_dict(dictionary, filename):
+    p = pickle.Pickler(open("{0}.p".format(filename),"wb"))
+    p.fast = True
+    p.dump(dictionary)
 
 def main(args):
     torch.manual_seed(args.seed)
@@ -51,7 +51,7 @@ def main(args):
         for lr_search in range(10):
 
             keep = np.random.choice(list(range(650)), tot_class, replace=False)
-            
+
             dataset = utils.remove_classes_omni(
                 df.DatasetFactory.get_dataset("omniglot", train=True, background=False, path=args.dataset_path), keep)
             iterator_sorted = torch.utils.data.DataLoader(
@@ -116,7 +116,7 @@ def main(args):
                     maml.parameters()[-1].data = w
 
                     if args.neuromodulation:
-                        weights2reset = ["vars_26"] 
+                        weights2reset = ["vars_26"]
                         biases2reset = ["vars_27"]
                     else:
                         weights2reset = ["vars_14"]
@@ -124,7 +124,7 @@ def main(args):
 
                     for n, a in maml.named_parameters():
                         n = n.replace(".", "_")
-                       
+
                         if n in weights2reset:
 
                             w = nn.Parameter(torch.ones_like(a)).to(device)
@@ -135,7 +135,7 @@ def main(args):
 
                             w = nn.Parameter(torch.zeros_like(a)).to(device)
                             a.data = w
-                       
+
                     filter_list = ["vars.{0}".format(v) for v in range(6)]
 
                     logger.info("Filter list = %s", ",".join(filter_list))
@@ -145,20 +145,33 @@ def main(args):
 
                     list_of_params = list(filter(lambda x: x.learn, maml.parameters()))
                     list_of_names = list(filter(lambda x: x[1].learn, maml.named_parameters()))
-                    
+
                     if args.scratch or args.no_freeze:
                         print("Empty filter list")
                         list_of_params = maml.parameters()
-                    
+
                     for x in list_of_names:
                         logger.info("Unfrozen layer = %s", str(x[0]))
                     opt = torch.optim.Adam(list_of_params, lr=lr)
-
+                    running_imgs = None
+                    running_targets = None
+                    buffer_ind = 0
+                    buffer_size = args.buffer_size
                     for _ in range(0, args.epoch):
                         for img, y in iterator_sorted:
                             img = img.to(device)
                             y = y.to(device)
-
+                            if running_imgs is None:
+                                running_imgs = img
+                                running_targets = y
+                            else:
+                                if len(running_imgs) < buffer_size:
+                                    running_imgs = torch.cat((running_imgs, img))
+                                    running_targets = torch.cat((running_targets, y))
+                                else:
+                                    running_imgs[buffer_ind] = img
+                                    running_targets[buffer_ind] = y
+                            buffer_ind = (buffer_ind + 1) % buffer_size
                             pred = maml(img)
                             opt.zero_grad()
                             loss = F.cross_entropy(pred, y)
@@ -200,7 +213,7 @@ def main(args):
         for aoo in range(args.runs):
 
             keep = np.random.choice(list(range(650)), tot_class, replace=False)
-            
+
             if args.dataset == "omniglot":
 
                 dataset = utils.remove_classes_omni(
@@ -293,7 +306,7 @@ def main(args):
 
                             w = nn.Parameter(torch.zeros_like(a)).to(device)
                             a.data = w
-                
+
                 correct = 0
                 for img, target in iterator:
                     with torch.no_grad():
@@ -310,7 +323,7 @@ def main(args):
                 filter_list = ["vars.{0}".format(v) for v in range(6)]
 
                 logger.info("Filter list = %s", ",".join(filter_list))
-               
+
                 list_of_names = list(
                     map(lambda x: x[1], list(filter(lambda x: x[0] not in filter_list, maml.named_parameters()))))
 
@@ -319,23 +332,37 @@ def main(args):
                 if args.scratch or args.no_freeze:
                     print("Empty filter list")
                     list_of_params = maml.parameters()
-                
+
                 for x in list_of_names:
                     logger.info("Unfrozen layer = %s", str(x[0]))
                 opt = torch.optim.Adam(list_of_params, lr=lr)
-
+                running_imgs = None
+                running_targets = None
+                buffer_ind = 0
+                buffer_size = args.buffer_size
                 for _ in range(0, args.epoch):
                     for img, y in iterator_sorted:
                         img = img.to(device)
                         y = y.to(device)
-                        pred = maml(img)
+                        if running_imgs is None:
+                            running_imgs = img
+                            running_targets = y
+                        else:
+                            if len(running_imgs) < buffer_size:
+                                running_imgs = torch.cat((running_imgs, img))
+                                running_targets = torch.cat((running_targets, y))
+                            else:
+                                running_imgs[buffer_ind] = img
+                                running_targets[buffer_ind] = y
+                        buffer_ind = (buffer_ind + 1) % buffer_size
+                        pred = maml(running_imgs)
                         opt.zero_grad()
-                        loss = F.cross_entropy(pred, y)
+                        loss = F.cross_entropy(pred, running_targets)
                         loss.backward()
                         opt.step()
 
                 logger.info("Result after one epoch for LR = %f", lr)
-                
+
                 correct = 0
                 for img, target in iterator:
                     img = img.to(device)
@@ -386,6 +413,7 @@ if __name__ == '__main__':
     argparser.add_argument("--rln", type=int, default=6)
     argparser.add_argument("--runs", type=int, default=50)
     argparser.add_argument("--neuromodulation", action="store_true")
+    argparser.add_argument("--buffer_size", type=int, default=1)
 
     args = argparser.parse_args()
 

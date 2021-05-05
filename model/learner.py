@@ -1,5 +1,6 @@
 import logging
 import matplotlib.pyplot as plt
+import sys
 
 import numpy as np
 import torch
@@ -66,13 +67,13 @@ class Learner(nn.Module):
                 torch.nn.init.kaiming_normal_(w)
                 self.vars.append(w)
                 # [ch_out]
-                
+
                 #if 'nm_to' in name:
                 #    bias_init = -3
                 #    bias_ = nn.Parameter(torch.zeros(param[0]))
                 #    bias_.data.fill_(bias_init)
                 #    self.vars.append(bias_)
-                #else:    
+                #else:
 
                 self.vars.append(nn.Parameter(torch.zeros(param[0])))
 
@@ -149,7 +150,7 @@ class Learner(nn.Module):
                 raise NotImplementedError
 
         return info
-    
+
 
     def forward(self, x, vars=None, bn_training=True, feature=False):
         """
@@ -162,7 +163,7 @@ class Learner(nn.Module):
         :param bn_training: set False to not update
         :return: x, loss, likelihood, kld
         """
-        
+
         cat_var = False
         cat_list = []
 
@@ -182,11 +183,11 @@ class Learner(nn.Module):
             #'conv3_nm'
             #'bn3_nm'
 
-          
+
             # Query the neuromodulatory network:
-            
+
             for i in range(x.size(0)):
-            
+
                 data = x[i].view(1,3,28,28)
                 nm_data = x[i].view(1,3,28,28)
 
@@ -211,13 +212,14 @@ class Learner(nn.Module):
                 nm_data = F.relu(nm_data)
                 nm_data = maxpool(nm_data, kernel_size=2, stride=2)
 
+                # nm_data = F.pad(nm_data, (-1, -1, -1, -1))
+
                 w,b = vars[8], vars[9]
                 nm_data = conv2d(nm_data, w, b)
                 w,b = vars[10], vars[11]
                 running_mean, running_var = self.vars_bn[4], self.vars_bn[5]
                 nm_data = F.batch_norm(nm_data, running_mean, running_var, weight=w, bias=b, training=True)
                 nm_data = F.relu(nm_data)
-                #nm_data = maxpool(nm_data, kernel_size=2, stride=2)
 
 
                 nm_data = nm_data.view(nm_data.size(0), 1008)
@@ -226,6 +228,7 @@ class Learner(nn.Module):
 
                 w,b = vars[12], vars[13]
                 fc_mask = F.sigmoid(F.linear(nm_data, w, b)).view(nm_data.size(0), 2304)
+                # fc_mask = F.softmax(F.linear(nm_data, w, b).view(nm_data.size(0), 2304), dim=1)
 
 
                 # =========== PREDICTION NETWORK ===========
@@ -239,7 +242,7 @@ class Learner(nn.Module):
                 #'fc'
 
                 w,b = vars[14], vars[15]
-            
+
                 data = conv2d(data, w, b)
 
                 w,b = vars[16], vars[17]
@@ -249,14 +252,14 @@ class Learner(nn.Module):
                 data = maxpool(data, kernel_size=2, stride=2)
 
                 w,b = vars[18], vars[19]
-            
+
                 data = conv2d(data, w, b, stride=1)
                 w,b = vars[20], vars[21]
                 running_mean, running_var = self.vars_bn[8], self.vars_bn[9]
                 data = F.batch_norm(data, running_mean, running_var, weight=w, bias=b, training=True)
                 data = F.relu(data)
                 data = maxpool(data, kernel_size=2, stride=2)
-                
+
                 w,b = vars[22], vars[23]
 
                 data = conv2d(data, w, b, stride=1)
@@ -346,7 +349,7 @@ class Learner(nn.Module):
         if self.Neuromodulation:
             return(prediction)
         else:
-            return (x) 
+            return (x)
 
     def zero_grad(self, vars=None):
         """
