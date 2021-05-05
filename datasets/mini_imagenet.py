@@ -90,8 +90,12 @@ class MiniImageNet(data.Dataset):
         self.data2 = []
         self.targets2 = []
         self.new_flat = []
-        for a in range(int(len(self.targets) / 20)):
-            start = a * 20
+        # for omniglot they are using 15 (meta-test training) + 5 (meta-test testing)
+        # mini-imagenet has 600 instances per class, let's keep this 15 + 5 split
+        # bascially we only use the first 20 images
+        self._num_instance_per_class = 600
+        for a in range(int(len(self.targets) / self._num_instance_per_class)):
+            start = a * self._num_instance_per_class
             if train:
                 for b in range(start, start + 15):
                     self.data2.append(self.data[b])
