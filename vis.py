@@ -17,15 +17,21 @@ def main():
 		x = res_json["params"]["schedule"]
 		final_results = res_json["results"]["Final Results"]
 		averages = [0] * len(x)
-		name = res_json["params"]["model"].split(".")[0]
+		if "plot_name" in res_json["params"]:
+			name = res_json["params"]["plot_name"]
+		else:
+			name = res_json["params"]["model"].split(".")[0]
 		for elt in final_results:
 			ind = x.index(elt[0])
 			# Grab the accuracy
 			averages[ind] += elt[1]["0"][0] / num_runs
+		print(path)
+		print(averages)
+		print()
 		plt.plot(x, averages, label=name)
 	plt.ylim([0, 1])
 	plt.legend()
-	plt.xlabel("Tasks")
+	plt.xlabel("Classes seen")
 	plt.ylabel("Accuracy")
 	plt.grid()
 	sns.despine()
