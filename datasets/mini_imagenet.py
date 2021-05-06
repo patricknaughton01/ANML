@@ -90,8 +90,12 @@ class MiniImageNet(data.Dataset):
         self.data2 = []
         self.targets2 = []
         self.new_flat = []
-        for a in range(int(len(self.targets) / 20)):
-            start = a * 20
+        # for omniglot they are using 15 (meta-test training) + 5 (meta-test testing)
+        # mini-imagenet has 600 instances per class, let's keep this 15 + 5 split
+        # bascially we only use the first 20 images
+        self._num_instance_per_class = 600
+        for a in range(int(len(self.targets) / self._num_instance_per_class)):
+            start = a * self._num_instance_per_class
             if train:
                 for b in range(start, start + 15):
                     self.data2.append(self.data[b])
@@ -134,9 +138,11 @@ class MiniImageNet(data.Dataset):
             image = Image.open(image_path, mode='r').convert('RGB')  # L
             image = image.resize((28, 28), resample=Image.LANCZOS)
             image = np.array(image, dtype=np.float32)
-            normalize = transforms.Normalize(mean=[0.92206 * 256, 0.92206 * 256, 0.92206 * 256],
-                                             std=[0.08426 * 256 * 256, 0.08426 * 256 * 256,
-                                                  0.08426 * 256 * 256])  # adjust means and std of input data
+            #  mean and std computed over all 60000 images
+            #  mean: [120.61778, 114.46307, 102.97153]
+            #  std: [67.23823, 65.32288, 68.979576]
+            normalize = transforms.Normalize(mean=[120.61778, 114.46307, 102.97153],
+                                             std=[67.23823, 65.32288, 68.979576])  # adjust means and std of input data
             self.transform = transforms.Compose([transforms.ToTensor(), normalize])
             if self.transform is not None:
                 image = self.transform(image)

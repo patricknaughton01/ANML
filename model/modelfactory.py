@@ -121,12 +121,14 @@ class ModelFactory():
                 ]
 
         elif dataset == "mini_imagenet":
+            #  only this part matters for ANML
             if model_type == "Neuromodulation":
 
                 nm_channels = 112
                 channels = 256
                 size_of_representation = 2304
                 size_of_interpreter = 1008
+                classes = 100
 
                 return [
 
@@ -149,7 +151,7 @@ class ModelFactory():
                     ('bn2', [channels]),
                     ('conv3', [channels, channels, 3, 3, 1, 0]),
                     ('bn3', [channels]),
-                    ('fc', [1000, size_of_representation]),
+                    ('fc', [classes, size_of_representation]),
                 ]
 
 
