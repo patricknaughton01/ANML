@@ -44,3 +44,27 @@ Tensorboard
 
 * [OML/MRCL](https://github.com/khurramjaved96/mrcl)
 
+## Changes in the Code
+
+### Experiments related to Gating Functions
+
+### Experiments related to Buffering
+
+### Experiments related to Neuromodulator Ablation
+
+### Experiments related to Mini-ImageNet Dataset
+
+- /datasets
+    - mini_imagenet.py: adding a dataloader for the Mini-Imagenet dataset that can grab, verify and pre-process the data.
+
+    - datasetfactory.py: adding support to create a Mini-Imagenet dataloader object based on the trianing parameters
+
+    - task_sampler.py: adding support for the Mini-Imagenet dataset
+
+- /model 
+  
+    - modelfactory.py: adding the ANML network architecture for the Mini-Imagenet
+
+- mrcl_classification.py: extending meta-training to the Mini-Imagenet dataset
+
+- evaluate_classification.py: extending meta-testing to the Mini-Imagenet dataset

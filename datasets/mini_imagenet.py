@@ -263,4 +263,4 @@ class MiniImageNet(data.Dataset):
         print(f"Extracting downloaded tar file to {self.root}")
 
     def _get_target_folder(self):
-        return 'train' if self.background else 'val'
+        return 'train' if self.background else 'test'
