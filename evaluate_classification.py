@@ -17,6 +17,14 @@ from experiment.experiment import experiment
 
 logger = logging.getLogger('experiment')
 
+def generate_keep(dataset_name: str, tot_class: int) -> np.ndarray:
+    if dataset_name == "omniglot":
+        return np.random.choice(list(range(650)), tot_class, replace=False)
+    elif dataset_name == "mini_imagenet":
+        return np.random.choice(list(range(20)), tot_class, replace=False)
+    else:
+        raise Exception(f"Need to specify number of classes for {dataset_name}")
+
 def pickle_dict(dictionary, filename):
     p = pickle.Pickler(open("{0}.p".format(filename),"wb"))
     p.fast = True
@@ -44,22 +52,27 @@ def main(args):
 
     final_results_all = []
     temp_result = []
+
+    # this is for omniglot, default from 10 to 600
     total_clases = args.schedule
+    # this is for mini_imagenet
+    if args.dataset == "mini_imagenet":
+        total_clases = [5, 10, 15, 20]
+
     for tot_class in total_clases:
         lr_list = [0.001, 0.0006, 0.0004, 0.00035, 0.0003, 0.00025, 0.0002, 0.00015, 0.0001, 0.00009, 0.00008, 0.00006, 0.00003, 0.00001]
         lr_all = []
         for lr_search in range(10):
-
-            keep = np.random.choice(list(range(650)), tot_class, replace=False)
+            keep = generate_keep(dataset_name=args.dataset, tot_class=tot_class)
 
             dataset = utils.remove_classes_omni(
-                df.DatasetFactory.get_dataset("omniglot", train=True, background=False, path=args.dataset_path), keep)
+                df.DatasetFactory.get_dataset(args.dataset, train=True, background=False, path=args.dataset_path), keep)
             iterator_sorted = torch.utils.data.DataLoader(
                 utils.iterator_sorter_omni(dataset, False, classes=total_clases),
                 batch_size=1,
                 shuffle=args.iid, num_workers=2)
             dataset = utils.remove_classes_omni(
-                df.DatasetFactory.get_dataset("omniglot", train=not args.test, background=False, path=args.dataset_path),
+                df.DatasetFactory.get_dataset(args.dataset, train=not args.test, background=False, path=args.dataset_path),
                 keep)
             iterator = torch.utils.data.DataLoader(dataset, batch_size=1,
                                                    shuffle=False, num_workers=1)
@@ -212,8 +225,8 @@ def main(args):
 
         for aoo in range(args.runs):
 
-            keep = np.random.choice(list(range(650)), tot_class, replace=False)
-
+            keep = generate_keep(dataset_name=args.dataset, tot_class=tot_class)
+            # not sure why the original authors decided to pass in "omniglot" instead of args.dataset
             if args.dataset == "omniglot":
 
                 dataset = utils.remove_classes_omni(
@@ -236,6 +249,19 @@ def main(args):
                 dataset = utils.remove_classes(df.DatasetFactory.get_dataset(args.dataset, train=False), keep)
                 iterator = torch.utils.data.DataLoader(dataset, batch_size=128,
                                                        shuffle=False, num_workers=1)
+            elif args.dataset == "mini_imagenet":
+                dataset = utils.remove_classes_omni(
+                    df.DatasetFactory.get_dataset("mini_imagenet", train=True, background=False), keep)
+                iterator_sorted = torch.utils.data.DataLoader(
+                    utils.iterator_sorter_omni(dataset, False, classes=total_clases),
+                    batch_size=1,
+                    shuffle=args.iid, num_workers=2)
+                dataset = utils.remove_classes_omni(
+                    df.DatasetFactory.get_dataset("mini_imagenet", train=not args.test, background=False), keep)
+                iterator = torch.utils.data.DataLoader(dataset, batch_size=1,
+                                                       shuffle=False, num_workers=1)
+            else:
+                raise Exception(f"Unsupported dataset for meta-testing {args.dataset}")
             print(args)
 
             if torch.cuda.is_available():
